@@ -1,127 +1,109 @@
-// Copyright or something.
-'use strict';
+class CrbugSearcher extends Searcher {
+  mainProject = 'chromium'
+  projects = ['chromium', 'v8', 'skia', 'webrtc', 'pdfium', 'angleproject']
 
-function CrbugSearcher(query) {
-  Searcher.call(this, query);
-}
-inherits(CrbugSearcher, Searcher);
+  constructor(query) {
+    super(query);
+  }
 
-CrbugSearcher.mainProject_ = "chromium";
+  get suggestionsURL () {
+    return this.#isBugQuery() ? this.#getBugURL() : this.#getIssueListURL();
+  }
 
-CrbugSearcher.projects_ = [
-  CrbugSearcher.mainProject_, "v8", "skia", "webrtc", "pdfium", "angleproject"];
+  getSuggestions (response) {
+    const dom = new DOMParser().parseFromString(response, 'text/html');
+  
+    if (this.#isBugQuery()) {
+      const { textContent: summary } = dom.querySelector('#issueheader span.h3');
+      if (!summary) return [];
 
-CrbugSearcher.prototype.getSuggestionsURL = function() {
-  return this.isBugQuery_() ? this.getBugURL_() : this.getIssueListURL_();
-};
+      const { textContent: owner } = dom.querySelector('#issuemeta tr:nth-child(2) a.userlink');
 
-CrbugSearcher.prototype.getSuggestions = function(response) {
-  var dom = new DOMParser().parseFromString(response, 'text/html');
-
-  function getBugDescription(summary, owner, id) {
-    var description = '<match>' + summary + '</match> ';
-    if (owner) {
-      description += '<dim>' + owner + '</dim> ';
+      return [{
+        content: this.getBugURL_(),
+        description: this.#getBugDescription(summary, owner ?? '--', this.query)
+      }];
     }
-    return description + '<url>crbug.com/' + id + '</url>';
+  
+    const suggestions = [];
+    const results = dom.querySelectorAll('#resultstable tr:not(#headingrow)');
+    for (const row in results) {
+      const { textContent: id } = row.getElementsByClassName('col_0')[0] ?? {};
+      if (!idElem) return;
+  
+      const { textContent: owner } = row.getElementsByClassName('col_7')[0] ?? {};
+      if (!owner) return;
+  
+      const { textContent: summary } = row.getElementsByClassName('col_8')[1] ?? {};
+      if (!summary) return;
+  
+      suggestions.push({
+        content: this.#getCodeGoogleComIssue(id),
+        description: this.#getBugDescription(summary, owner, id)
+      });
+    }
+
+    return suggestions;
+  };
+
+  get shouldThrottle () {
+    return true;
+  };
+
+  get searchURL () {
+    return this.#isBugQuery() ? this.#getBugURL() : this.#getIssueListURL();
+  };
+
+  #isBugQuery () {
+    return !!this.#parseBugNumberQuery(this.query);
+  };
+
+  #getBugURL () {
+    return this.#getCodeGoogleComIssue(this.query);
+  };
+
+  #getBugDescription (summary, owner, id) {
+    const description = owner ? `<dim>${owner}</dim>` : `<match>${summary}</match>`;
+    return `${description}<url>crbug.com/${id}</url>`;
   }
 
-  if (this.isBugQuery_()) {
-    var summaryElem = dom.querySelector('#issueheader span.h3');
-    if (!summaryElem)
-      return [];
-    var ownerElem = dom.querySelector('#issuemeta tr:nth-child(2) a.userlink');
-    var owner = ownerElem ? ownerElem.textContent : '--';
-    return [{
-      content: this.getBugURL_(),
-      description: getBugDescription(summaryElem.textContent, owner, this.query)
-    }];
+  #parseBugNumberQuery (originalQuery) {
+    let query, parsedQuery, project = this.mainProject;
+    const isBug = (q) => !isNaN(Number.parseInt(q));
+  
+    query = originalQuery;
+    if (isBug(query)) {
+      return { project: project, issueNumber: query };
+    }
+  
+    parsedQuery = originalQuery.split(":");
+    project = parsedQuery[0];
+    query = parsedQuery[1];
+  
+    if (this.projects.contains(project) && isBug(query)) {
+      return { project: project, issueNumber: query };
+    }
+  
+    return {};
   }
-
-  var suggestions = [];
-  Array.prototype.forEach.call(
-      dom.querySelectorAll('#resultstable tr:not(#headingrow)'),
-      function(row) {
-    // Bug# is column 0.
-    var idElem = row.getElementsByClassName('col_0')[0];
-    if (!idElem) return;
-    var id = idElem.textContent.trim();
-
-    // Owner is colum 7.
-    var ownerElem = row.getElementsByClassName('col_7')[0];
-    if (!ownerElem) return;
-    var owner = ownerElem.textContent.trim();
-
-    // The summary is column 8, except there are two column 8s and it's
-    // the second of those.
-    var summaryElem = row.getElementsByClassName('col_8')[1];
-    if (!summaryElem) return;
-    var summary = summaryElem.textContent.trim();
-
-    suggestions.push({
-      content: CrbugSearcher.getCodeGoogleComIssue_(id),
-      description: getBugDescription(summary, owner, id)
+  
+  #getCodeGoogleComIssue (query) {
+    const { project, issueNumber } = this.#parseBugNumberQuery(query);
+    return `https://bugs.chromium.org/p/${project}/issues/detail?id=${issueNumber}`;
+  };
+  
+  #getIssueListURL () {
+    // The query separates spaces with +, but encodes each component.
+    const encodedQuery = [];
+    this.query.split(' ').forEach(function(component) {
+      encodedQuery.push(encodeURI(component));
     });
-  }.bind(this));
-  return suggestions;
-};
-
-CrbugSearcher.prototype.shouldThrottle = function() {
-  // Otherwise crbug will show captchas.
-  return true;
-};
-
-CrbugSearcher.prototype.getSearchURL = function() {
-  return this.isBugQuery_() ? this.getBugURL_() : this.getIssueListURL_();
-};
-
-CrbugSearcher.prototype.isBugQuery_ = function() {
-  return !!CrbugSearcher.parseBugNumberQuery_(this.query);
-};
-
-CrbugSearcher.prototype.getBugURL_ = function() {
-  return CrbugSearcher.getCodeGoogleComIssue_(this.query);
-};
-
-CrbugSearcher.parseBugNumberQuery_ = function (originalQuery) {
-  var query, parsedQuery, project = CrbugSearcher.mainProject_;
-  function isBugNumber(bugNumberQuery) {
-   return !isNaN(Number.parseInt(bugNumberQuery));
+    return [
+      'https://bugs.chromium.org/p/' + this.mainProject + '/issues/list?',
+      'q=commentby:me+', encodedQuery.join('+'), '&',
+      'sort=-id&',
+      'colspec=ID%20Pri%20M%20Iteration%20ReleaseBlock%20Cr%20Status%20Owner%20',
+      'Summary%20OS%20Modified'
+    ].join('');
   }
-
-  query = originalQuery;
-  if (isBugNumber(query)) {
-    return {project: project, issueNumber: query};
-  }
-
-  parsedQuery = originalQuery.split(":");
-  project = parsedQuery[0];
-  query = parsedQuery[1];
-
-  if (CrbugSearcher.projects_.indexOf(project) !== -1 && isBugNumber(query)) {
-    return {project: project, issueNumber: query};
-  }
-
-  return;
-};
-
-CrbugSearcher.getCodeGoogleComIssue_ = function(query) {
-  var parsedQuery = CrbugSearcher.parseBugNumberQuery_(query);
-  return 'https://bugs.chromium.org/p/' + parsedQuery.project +
-		'/issues/detail?id=' + parsedQuery.issueNumber;
-};
-
-CrbugSearcher.prototype.getIssueListURL_ = function() {
-  // The query separates spaces with +, but encodes each component.
-  var encodedQuery = [];
-  this.query.split(' ').forEach(function(component) {
-    encodedQuery.push(encodeURI(component));
-  });
-  return [
-    'https://bugs.chromium.org/p/' + CrbugSearcher.mainProject_ + '/issues/list?',
-    'q=commentby:me+', encodedQuery.join('+'), '&',
-    'sort=-id&',
-    'colspec=ID%20Pri%20M%20Iteration%20ReleaseBlock%20Cr%20Status%20Owner%20',
-    'Summary%20OS%20Modified'
-  ].join('');
-};
+}

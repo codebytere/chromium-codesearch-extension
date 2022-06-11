@@ -1,82 +1,64 @@
-// Copyright or something.
-'use strict';
-
-function CodesearchSearcher(query) {
-  Searcher.call(this, query);
-}
-inherits(CodesearchSearcher, Searcher);
-
-CodesearchSearcher.prototype.getSuggestionsURL = function() {
-  return [
-    'https://cs.chromium.org/codesearch/json?',
-    'suggest_request=b&',
-    'query=', encodeURI(this.query), '+package%3Achromium&',
-    'query_cursor_position=' + this.query.length, '&',
-    'suggest_request=e'
-    // Note: when invoking from cs.chromium.org there is also a "sid"
-    // parameter, but I don't know how to generate it, nor does it appear
-    // to matter if it's left out.
-  ].join('');
-};
-
-CodesearchSearcher.prototype.getSuggestions = function(response) {
-  var suggestions = null;
-  try {
-    var responseJson = JSON.parse(response);
-    suggestions = responseJson.suggest_response[0].suggestion;
-    if (suggestions == null) {
-      // No suggestions.
-      return [];
-    }
-  } catch (e) {
-    console.error('Invalid response: ' + currentXhr.responseText);
-    return [];
+class CodesearchSearcher extends Searcher {
+  constructor(query) {
+    super(query);
   }
 
-  suggestions.sort(function(s1, s2) {
-    return s1.score < s2.score;
-  });
+  getSuggestions (content) {
+    let suggestions;
+    try {
+      const json = JSON.parse(content);
+      suggestions = json.suggest_response[0].suggestion;
+      if (!suggestions) return [];
+    } catch (e) {
+      console.error(e)
+      return [];
+    }
+  
+    suggestions.sort((s1, s2) => s1.score < s2.score);
+  
+    window.cs = suggestions.map((suggest) => {
+      const hasLine = suggest?.goto_line > 1;
+      const { goto_package_id, goto_line, goto_path } = suggest;
+      const href = `https://cs.chromium.org/${goto_package_id}/${goto_path}?q=${encodeURI(this.query)}&sq=package:chromium&${hasLine ? `l=${goto_line}` : ''}`
+  
+      if (!('match_start' in suggest))
+        suggest.match_start = 0;
+      if (!('match_end' in suggest))
+        suggest.match_end = suggest.title.length;
+  
+      return {
+        content: href,
+        description: [
+          suggest.title.slice(0, suggest.match_start),
+          '<match>',
+          suggest.title.slice(suggest.match_start, suggest.match_end),
+          '</match>',
+          suggest.title.slice(suggest.match_end),
+          ' <url>',
+          suggest.goto_path,
+          hasLine ? (':' + suggest.goto_line) : '',
+          '</url>'
+        ].join('')
+      };
+    }).bind(this);
 
-  window.cs = suggestions.map(function(suggest) {
-    var has_line = suggest.goto_line && suggest.goto_line > 1;
+    return window.cs;
+  }
 
-    // Construct the link that has been suggested.
-    var href = [
-      'https://cs.chromium.org/', suggest.goto_package_id, '/',
-      suggest.goto_path, '?', 'q=', encodeURI(this.query), '&',
-      'sq=package:chromium&', has_line ? ('l=' + suggest.goto_line) : '',
+  get searchURL () {
+    return `https://cs.chromium.org/search/?q=${encodeURI(this.query)}&sq=package:chromium&type=cs`;
+  };
+
+  get suggestionsURL () {
+    return [
+      'https://cs.chromium.org/codesearch/json?',
+      'suggest_request=b&',
+      'query=', encodeURI(this.query), '+package%3Achromium&',
+      'query_cursor_position=' + this.query.length, '&',
+      'suggest_request=e'
+      // Note: when invoking from cs.chromium.org there is also a "sid"
+      // parameter, but I don't know how to generate it, nor does it appear
+      // to matter if it's left out.
     ].join('');
-
-    // Simpler to always have a match_start/match_end.
-    if (!('match_start' in suggest))
-      suggest.match_start = 0;
-    if (!('match_end' in suggest))
-      suggest.match_end = suggest.title.length;
-
-    return {
-      content: href,
-      description: [
-        // Title, with the matching text in bold.
-        suggest.title.slice(0, suggest.match_start),
-        '<match>',
-        suggest.title.slice(suggest.match_start, suggest.match_end),
-        '</match>',
-        suggest.title.slice(suggest.match_end),
-        // Path for the query, complete with :42 for line 42, if applicable.
-        // The "url" is a bit of a lie, but it looks nice.
-        ' <url>',
-        suggest.goto_path,
-        has_line ? (':' + suggest.goto_line) : '',
-        '</url>'
-      ].join('')
-    };
-  }.bind(this));
-  return window.cs;
-};
-
-CodesearchSearcher.prototype.getSearchURL = function() {
-  return [
-    'https://cs.chromium.org/search/', '?q=', encodeURI(this.query),
-    '&sq=package:chromium&type=cs'
-  ].join('');
-};
+  }
+}

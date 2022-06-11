@@ -20,7 +20,7 @@ function getSearcher(query) {
     var keywords = CONFIG[i][0];
     for (var j = 0; j < keywords.length; j++) {
       var keyword = keywords[j] + ':';
-      if (startsWith(query, keyword)) {
+      if (query.startsWith(keyword)) {
         return new CONFIG[i][1](query.slice(keyword.length).trim());
       }
     }
@@ -28,11 +28,8 @@ function getSearcher(query) {
   return new CodesearchSearcher(query);
 }
 
-var currentXhr = null;
-var throttleTimeout = undefined;
-
 chrome.omnibox.onInputChanged.addListener(function(query, suggest) {
-  if (startsWith(query, '?') || query == '') {
+  if (query == '' || query.startsWith('?')) {
     suggest(CONFIG.map(function(it) {
       var desc = describeKeywords(it[0]) + ' - <match>' + it[2] + '</match>';
       if (it[3]) {
@@ -52,20 +49,16 @@ chrome.omnibox.onInputChanged.addListener(function(query, suggest) {
     return;
   }
 
-  var runQuery = function() {
-    // TODO: Implement response caching if appropriate?
-    if (currentXhr)
-      currentXhr.abort();
-    currentXhr = new XMLHttpRequest();
-    currentXhr.open('GET', searcher.getSuggestionsURL(), true);
-    currentXhr.onload = function() {
-      suggest(searcher.getSuggestions(currentXhr.responseText));
-      currentXhr = null;
-    };
-    currentXhr.send();
+  const runQuery = () => {
+    console.log('searcher.suggestionsURL: ', searcher.suggestionsURL)
+    fetch(searcher.suggestionsURL).then((result) => {
+      result.text().then(text => {
+        suggest(searcher.getSuggestions(text));
+      })
+    })
   };
 
-  if (searcher.shouldThrottle()) {
+  if (searcher.shouldThrottle) {
     // I guess that throttling == only searching if idle for > 1s.
     if (typeof(throttleTimeout) != 'undefined')
       clearTimeout(throttleTimeout);
@@ -76,10 +69,8 @@ chrome.omnibox.onInputChanged.addListener(function(query, suggest) {
 });
 
 chrome.omnibox.onInputEntered.addListener(function(query, disposition) {
-  if (!startsWith(query, 'http:', 'https:')) {
-    // If it's not an absolute URL (which may come from the user accepting a
-    // suggestion) then use the searcher.
-    query = getSearcher(query).getSearchURL();
+  if (!['http:', 'https:'].every(s => query.startsWith(s))) {
+    query = getSearcher(query).searchURL;
   }
 
   var tabsFunction = chrome.tabs.create;
