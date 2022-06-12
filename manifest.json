@@ -1,11 +1,11 @@
 {
   "background": {
     "scripts": [
-      "searcher.js",
-      "author.js",
-      "codesearch.js",
-      "crbug.js",
-      "crrev.js",
+      "src/searcher.js",
+      "src/author.js",
+      "src/codesearch.js",
+      "src/crbug.js",
+      "src/crrev.js",
       "background.js"
     ],
     "persistent": false
