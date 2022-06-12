@@ -1,23 +1,19 @@
 class Searcher {
-  query = ''
+  query = "";
 
   constructor(query) {
-    this.query = query
+    this.query = query;
   }
-  
-  getSuggestions (content) {
-    throw new Error('Not implemented');
-  };
 
-  get suggestionsURL () {
-    throw new Error('Not implemented');
-  };
-  
-  get searchURL () {
-    throw new Error('Not implemented');
-  };
-  
-  get shouldThrottle () {
-    return false;
-  }; 
+  getSuggestions(content) {
+    throw new Error("Not implemented");
+  }
+
+  get suggestionsURL() {
+    throw new Error("Not implemented");
+  }
+
+  get searchURL() {
+    throw new Error("Not implemented");
+  }
 }

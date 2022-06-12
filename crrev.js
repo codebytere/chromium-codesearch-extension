@@ -1,36 +1,33 @@
-class CrrevSearcher extends Searcher {
+class ChromiumReviewSearcher extends Searcher {
   constructor(query) {
     super(query);
   }
 
   get suggestionsURL() {
-    return `http://crrev.com/${encodeURI(this.query)}`;
+    return `https://chromium-review.googlesource.com/changes/?q=status:open+-is:wip+${encodeURI(this.query)}`;
   }
 
-  getSuggestions (content) {
-    const dom = new DOMParser().parseFromString(content, 'text/html');
-  
-    const { textContent: author } = dom.querySelector('tr:nth-child(2) td') ?? {};
-    if (!author) return [];
-  
-    const { textContent: description } = dom.querySelector('tr:nth-child(5) td') ?? {};
-    if (!description)  return [];
-  
-    description = description.split('\n')[0];
-    if (description.length > 72) {
-      description = description.slice(0, 71) + '\u2026';
+  getSuggestions(content) {
+    if (content.startsWith(')]}\'')) {
+      content = content.slice(4);
     }
-  
-    return [{
-      content: this.getSuggestionsURL(),
-      description: [
-        '<match>', description, '</match> ',
-        '<dim>', author, '</dim>'
-      ].join('')
-    }];
+
+    const cls = JSON.parse(content);
+
+    const suggestions = [];
+    for (const cl of cls) {
+      const { project, _number, subject } = cl;
+      const url = `https://chromium-review.googlesource.com/c/${project}/+/${_number}`;
+      suggestions.push({
+        content: url,
+        description: `${_number}: ${subject}`
+      });
+    }
+
+    return suggestions;
   }
 
-  get searchURL () {
-    return this.getSuggestionsURL();
+  get searchURL() {
+    return this.suggestionsURL;
   }
 }

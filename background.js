@@ -1,105 +1,96 @@
 // Copyright or something.
-(function() {
-'use strict';
+const go = () => {
+  const CONFIG = [
+    [["a", "author"], AuthorSearcher, "Commits by author"],
+    [
+      ["b", "bug"],
+      CrbugSearcher,
+      "Your bugs or a bug ID, or project:bug ID (v8:898)",
+      'search "commentby:me"',
+    ],
+    [["c", "cs"], CodesearchSearcher, "Chromium code", "this is the default"],
+    [["r", "rev"], ChromiumReviewSearcher, "Chromium revision"],
+  ];
 
-var CONFIG = [
-  [['a', 'author'], AuthorSearcher, 'Commits by author'],
-  [['b', 'bug'], CrbugSearcher, 'Your bugs or a bug ID, or project:bug ID (v8:898)', 'search "commentby:me"'],
-  [['c', 'cs'], CodesearchSearcher, 'Chromium code', 'this is the default'],
-  [['r', 'rev'], CrrevSearcher, 'Chromium revision'],
-];
+  const describeKeywords = (keywords) => keywords.map(kw => `<url>${kw}:</url>`).join(' or ');
 
-function describeKeywords(keywords) {
-  return keywords.map(function(kw) {
-    return '<url>' + kw + ':</url>'
-  }).join(' or ');
-}
-
-function getSearcher(query) {
-  for (var i = 0; i < CONFIG.length; i++) {
-    var keywords = CONFIG[i][0];
-    for (var j = 0; j < keywords.length; j++) {
-      var keyword = keywords[j] + ':';
-      if (query.startsWith(keyword)) {
-        return new CONFIG[i][1](query.slice(keyword.length).trim());
+  function getSearcher(query) {
+    for (let i = 0; i < CONFIG.length; i++) {
+      const keywords = CONFIG[i][0];
+      for (let j = 0; j < keywords.length; j++) {
+        const keyword = `${keywords[j]}:`;
+        if (query.startsWith(keyword)) {
+          return new CONFIG[i][1](query.slice(keyword.length).trim());
+        }
       }
     }
+    return new CodesearchSearcher(query);
   }
-  return new CodesearchSearcher(query);
+
+  chrome.omnibox.onInputChanged.addListener(function (query, suggest) {
+    if (query == "" || query.startsWith("?")) {
+      suggest(
+        CONFIG.map(it => {
+          let description = `${describeKeywords(it[0])} - <match>${it[2]}</match>`;
+          if (it[3]) {
+            desc += `<dim>("${it[3]}")</dim>`;
+          }
+          return {
+            content: it[0][0] + ": ",
+            description
+          };
+        })
+      );
+      return;
+    }
+
+    const searcher = getSearcher(query);
+    if (!searcher.query) {
+      suggest([]);
+      return;
+    }
+
+    const runQuery = () => {
+      fetch(searcher.suggestionsURL).then((result) => {
+        result.text().then((text) => {
+          suggest(searcher.getSuggestions(text));
+        });
+      });
+    };
+  });
+
+  chrome.omnibox.onInputEntered.addListener(function (query, disposition) {
+    if (!["http:", "https:"].every((s) => query.startsWith(s))) {
+      query = getSearcher(query).searchURL;
+    }
+
+    const tabsFunction = chrome.tabs.create;
+    const tabsOptions = {
+      active: true,
+      url: query,
+    };
+
+    // Find the tabs API configuration depending on the disposition.
+    switch (disposition) {
+      case "currentTab":
+        tabsFunction = chrome.tabs.update;
+        break;
+      case "newBackgroundTab":
+        tabsOptions.active = false;
+        break;
+      case "newForegroundTab":
+        // Default configuration.
+        break;
+    }
+
+    tabsFunction(tabsOptions);
+  });
+
+  const commands = CONFIG.map(c => describeKeywords(c[0]));
+
+  chrome.omnibox.setDefaultSuggestion({
+    description: "Commands: <url>?</url>, " + commands.join(", "),
+  });
 }
 
-chrome.omnibox.onInputChanged.addListener(function(query, suggest) {
-  if (query == '' || query.startsWith('?')) {
-    suggest(CONFIG.map(function(it) {
-      var desc = describeKeywords(it[0]) + ' - <match>' + it[2] + '</match>';
-      if (it[3]) {
-        desc += ' <dim>(' + it[3] + ')</dim>';
-      }
-      return {
-        content: it[0][0] + ': ',
-        description: desc
-      }
-    }));
-    return;
-  }
-
-  var searcher = getSearcher(query);
-  if (!searcher.query) {
-    suggest([]);
-    return;
-  }
-
-  const runQuery = () => {
-    console.log('searcher.suggestionsURL: ', searcher.suggestionsURL)
-    fetch(searcher.suggestionsURL).then((result) => {
-      result.text().then(text => {
-        suggest(searcher.getSuggestions(text));
-      })
-    })
-  };
-
-  if (searcher.shouldThrottle) {
-    // I guess that throttling == only searching if idle for > 1s.
-    if (typeof(throttleTimeout) != 'undefined')
-      clearTimeout(throttleTimeout);
-    throttleTimeout = setTimeout(runQuery, 1000);
-  } else {
-    runQuery();
-  }
-});
-
-chrome.omnibox.onInputEntered.addListener(function(query, disposition) {
-  if (!['http:', 'https:'].every(s => query.startsWith(s))) {
-    query = getSearcher(query).searchURL;
-  }
-
-  var tabsFunction = chrome.tabs.create;
-  var tabsOptions = {
-    active: true,
-    url: query
-  };
-
-  // Find the tabs API configuration depending on the disposition.
-  switch (disposition) {
-    case 'currentTab':
-      tabsFunction = chrome.tabs.update;
-      break;
-    case 'newBackgroundTab':
-      tabsOptions.active = false;
-      break;
-    case 'newForegroundTab':
-      // Default configuration.
-      break;
-  }
-
-  tabsFunction(tabsOptions);
-});
-
-var commands = CONFIG.map(function(it) {
-  return describeKeywords(it[0]);
-});
-chrome.omnibox.setDefaultSuggestion({
-  description: 'Commands: <url>?</url>, ' + commands.join(', ')
-});
-
-}());
+go();
