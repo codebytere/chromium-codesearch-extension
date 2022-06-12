@@ -4,11 +4,13 @@ class ChromiumReviewSearcher extends Searcher {
   }
 
   get suggestionsURL() {
-    return `https://chromium-review.googlesource.com/changes/?q=status:open+-is:wip+${encodeURI(this.query)}`;
+    return `https://chromium-review.googlesource.com/changes/?q=status:open+-is:wip+${encodeURI(
+      this.query
+    )}&n=5`;
   }
 
   getSuggestions(content) {
-    if (content.startsWith(')]}\'')) {
+    if (content.startsWith(")]}'")) {
       content = content.slice(4);
     }
 
@@ -18,9 +20,10 @@ class ChromiumReviewSearcher extends Searcher {
     for (const cl of cls) {
       const { project, _number, subject } = cl;
       const url = `https://chromium-review.googlesource.com/c/${project}/+/${_number}`;
+      console.log({ project, _number, subject });
       suggestions.push({
         content: url,
-        description: `${_number}: ${subject}`
+        description: `${_number}: ${subject}`,
       });
     }
 

@@ -1,4 +1,3 @@
-// Copyright or something.
 const go = () => {
   const CONFIG = [
     [["a", "author"], AuthorSearcher, "Commits by author"],
@@ -12,7 +11,8 @@ const go = () => {
     [["r", "rev"], ChromiumReviewSearcher, "Chromium revision"],
   ];
 
-  const describeKeywords = (keywords) => keywords.map(kw => `<url>${kw}:</url>`).join(' or ');
+  const describeKeywords = (keywords) =>
+    keywords.map((kw) => `<url>${kw}:</url>`).join(" or ");
 
   function getSearcher(query) {
     for (let i = 0; i < CONFIG.length; i++) {
@@ -24,20 +24,22 @@ const go = () => {
         }
       }
     }
-    return new CodesearchSearcher(query);
+    // return new CodesearchSearcher(query);
   }
 
   chrome.omnibox.onInputChanged.addListener(function (query, suggest) {
     if (query == "" || query.startsWith("?")) {
       suggest(
-        CONFIG.map(it => {
-          let description = `${describeKeywords(it[0])} - <match>${it[2]}</match>`;
+        CONFIG.map((it) => {
+          let description = `${describeKeywords(it[0])} - <match>${
+            it[2]
+          }</match>`;
           if (it[3]) {
             desc += `<dim>("${it[3]}")</dim>`;
           }
           return {
             content: it[0][0] + ": ",
-            description
+            description,
           };
         })
       );
@@ -57,20 +59,21 @@ const go = () => {
         });
       });
     };
+
+    runQuery();
   });
 
-  chrome.omnibox.onInputEntered.addListener(function (query, disposition) {
-    if (!["http:", "https:"].every((s) => query.startsWith(s))) {
+  chrome.omnibox.onInputEntered.addListener((query, disposition) => {
+    if (!["http:", "https:"].some((s) => query.startsWith(s))) {
       query = getSearcher(query).searchURL;
     }
 
-    const tabsFunction = chrome.tabs.create;
-    const tabsOptions = {
+    let tabsFunction = chrome.tabs.create;
+    let tabsOptions = {
       active: true,
       url: query,
     };
 
-    // Find the tabs API configuration depending on the disposition.
     switch (disposition) {
       case "currentTab":
         tabsFunction = chrome.tabs.update;
@@ -79,18 +82,17 @@ const go = () => {
         tabsOptions.active = false;
         break;
       case "newForegroundTab":
-        // Default configuration.
         break;
     }
 
     tabsFunction(tabsOptions);
   });
 
-  const commands = CONFIG.map(c => describeKeywords(c[0]));
+  const commands = CONFIG.map((c) => describeKeywords(c[0]));
 
   chrome.omnibox.setDefaultSuggestion({
     description: "Commands: <url>?</url>, " + commands.join(", "),
   });
-}
+};
 
 go();
