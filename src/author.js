@@ -16,11 +16,14 @@ class AuthorSearcher extends Searcher {
 
     const suggestions = [];
     for (const member of members) {
-      const email = member.slice(member.indexOf('<') + 1).split('@')[0];
+      const [name, email] = member.split('<').map(m => {
+        return m.replace('<', '').replace('>', '').trim();
+      });
+
       if (member.indexOf(this.query) !== -1) {
         suggestions.push({
-          description: `${member.replace('<', '').replace('>', '')}`,
-          content: email,
+          description: `<match>${name}</match> <dim>${email}</dim>`,
+          content: this.getGitChromiumOrgAuthorSearch(this.query)
         });
       }
     }
@@ -33,10 +36,10 @@ class AuthorSearcher extends Searcher {
   }
 
   get searchURL() {
-    return this.#getGitChromiumOrgAuthorSearch(this.query);
+    return this.getGitChromiumOrgAuthorSearch(this.query);
   }
 
-  #getGitChromiumOrgAuthorSearch(author) {
+  getGitChromiumOrgAuthorSearch(author) {
     return `https://chromium.googlesource.com/chromium/src/+log/main?author=${encodeURI(
       author
     )}`;
