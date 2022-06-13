@@ -23,7 +23,7 @@ class ChromiumReviewSearcher extends Searcher {
       console.log({ project, _number, subject });
       suggestions.push({
         content: url,
-        description: `${_number}: ${subject}`,
+        description: `<match>${_number}</match>: ${subject}`,
       });
     }
 
