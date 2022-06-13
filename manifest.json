@@ -12,12 +12,12 @@
   },
   "description": "Chromium search tools in the Omnibox",
   "icons": {
-    "16": "assets/chromium16.png",
-    "48": "assets/chromium48.png",
-    "128": "assets/chromium128.png"
+    "16": "assets/chromium_logo_16.png",
+    "48": "assets/chromium_logo_48.png",
+    "128": "assets/chromium_logo_128.png"
   },
   "manifest_version": 2,
-  "name": "Omnibox for Chromium Developers TEST",
+  "name": "Omnibox for Chromium Developers",
   "omnibox": {
     "keyword": "cr"
   },
