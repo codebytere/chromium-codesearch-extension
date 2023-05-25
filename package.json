@@ -1,0 +1,29 @@
+{
+  "name": "chromium-codesearch-extension",
+  "version": "1.0.0",
+  "description": "Chromium search tools in the Omnibox",
+  "main": "background.js",
+  "scripts": {
+    "lint": "prettier --check \"src/*.js\"",
+    "prettier:write": "prettier --write \"src/*.js\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codebytere/chromium-codesearch-extension.git"
+  },
+  "keywords": [
+    "chromium",
+    "codesearch",
+    "extension",
+    "chrome"
+  ],
+  "author": "Shelley Vohr <shelley.vohr@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/codebytere/chromium-codesearch-extension/issues"
+  },
+  "homepage": "https://github.com/codebytere/chromium-codesearch-extension#readme",
+  "devDependencies": {
+    "prettier": "^2.8.8"
+  }
+}
