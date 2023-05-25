@@ -40,8 +40,6 @@ class AuthorSearcher extends Searcher {
   }
 
   getGitChromiumOrgAuthorSearch(author) {
-    return `https://chromium.googlesource.com/chromium/src/+log/main?author=${encodeURI(
-      author
-    )}`;
+    return `https://chromium.googlesource.com/chromium/src/+log/main?author=${encodeURI(author)}`;
   }
 }

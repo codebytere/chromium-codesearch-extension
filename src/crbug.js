@@ -20,15 +20,11 @@ class CrbugSearcher extends Searcher {
 
     const [project, parsedQuery] = this.query.split(':');
 
-    return isBug(parsedQuery)
-      ? { project: project, issueNumber: parsedQuery }
-      : false;
+    return isBug(parsedQuery) ? { project: project, issueNumber: parsedQuery } : false;
   }
 
   getIssueListURL() {
     const encoded = this.query.split(' ').join('+');
-    return `https://bugs.chromium.org/p/chromium/issues/list?q=${encodeURI(
-      encoded
-    )}`;
+    return `https://bugs.chromium.org/p/chromium/issues/list?q=${encodeURI(encoded)}`;
   }
 }

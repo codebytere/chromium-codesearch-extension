@@ -5,7 +5,7 @@ class ChromiumReviewSearcher extends Searcher {
 
   get suggestionsURL() {
     return `https://chromium-review.googlesource.com/changes/?q=status:open+-is:wip+${encodeURI(
-      this.query
+      this.query,
     )}&n=5`;
   }
 
