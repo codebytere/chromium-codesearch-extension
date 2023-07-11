@@ -6,7 +6,7 @@ This repsitory contains a clone of an old Chrome Web Extension which could be us
 
 ### How To Use
 
-1. Clone this repository by running `git clone https://github.com/codebytere/chromium-omnibox-clone` in a directory of your choice.
+1. Clone this repository by running `git clone https://github.com/codebytere/chromium-codesearch-extension` in a directory of your choice.
 
 2. Open Google Chrome and navigate to `chrome://extensions`.
 
