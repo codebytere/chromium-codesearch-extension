@@ -6,6 +6,6 @@ class CodesearchSearcher extends Searcher {
   get searchURL() {
     return `https://source.chromium.org/search/?q=${encodeURI(
       this.query,
-    )}&sq=package:chromium&type=cs`;
+    )}&sq=package:chromium`;
   }
 }

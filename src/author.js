@@ -23,7 +23,7 @@ class AuthorSearcher extends Searcher {
       if (member.indexOf(this.query) !== -1) {
         suggestions.push({
           description: `<match>${name}</match> <dim>${email}</dim>`,
-          content: this.getGitChromiumOrgAuthorSearch(this.query),
+          content: this.searchURL,
         });
       }
     }
@@ -36,10 +36,7 @@ class AuthorSearcher extends Searcher {
   }
 
   get searchURL() {
-    return this.getGitChromiumOrgAuthorSearch(this.query);
-  }
-
-  getGitChromiumOrgAuthorSearch(author) {
-    return `https://chromium.googlesource.com/chromium/src/+log/main?author=${encodeURI(author)}`;
+    const encoded = encodeURI(this.query);
+    return `https://chromium.googlesource.com/chromium/src/+log/main?author=${encoded}`
   }
 }
