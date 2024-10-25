@@ -1,1 +1,1 @@
-import './omnibox.js';
+import './src/omnibox.js';

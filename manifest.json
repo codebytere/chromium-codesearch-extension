@@ -1,6 +1,7 @@
 {
   "background": {
-    "service_worker": "service_worker.js"
+    "service_worker": "service_worker.js",
+    "type": "module"
   },
   "description": "Chromium search tools in the Omnibox",
   "icons": {
@@ -13,15 +14,16 @@
   "omnibox": {
     "keyword": "cr"
   },
-  "permissions": [
-    "storage",
+  "host_permissions": [
     "https://chromium-review.googlesource.com/*",
     "https://cs.chromium.org/codesearch/json/*",
     "https://source.chromium.org/*"
   ],
+  "permissions": [
+    "storage"
+  ],
   "version": "1",
   "action": {
-    "default_popup": "popup.html",
     "default_icon": {
       "16": "assets/chromium_logo_16.png",
       "48": "assets/chromium_logo_48.png",

@@ -18,10 +18,10 @@ const CONFIG = [
   [['r', 'rev'], ChromiumReviewSearcher, 'Chromium revision'],
 ];
 
-const commands = CONFIG.map((c) => describeKeywords(c[0]));
-
 const describeKeywords = (keywords) =>
   keywords.map((kw) => `<url>${kw}:</url>`).join(' or ');
+
+const commands = CONFIG.map((c) => describeKeywords(c[0]));
 
 function getSearcher(query) {
   for (let i = 0; i < CONFIG.length; i++) {
