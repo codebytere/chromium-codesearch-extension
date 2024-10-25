@@ -1,4 +1,4 @@
-class Searcher {
+export class Searcher {
   query = '';
 
   constructor(query) {
